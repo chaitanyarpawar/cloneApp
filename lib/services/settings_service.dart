@@ -75,7 +75,8 @@ class SettingsService {
   Future<bool> authenticateWithBiometrics({
     String reason = 'Please authenticate to access your cloned apps',
   }) async {
-    if (kIsWeb || _localAuth == null) return true; // Skip authentication on web for demo
+    if (kIsWeb || _localAuth == null)
+      return true; // Skip authentication on web for demo
 
     try {
       final bool didAuthenticate = await _localAuth!.authenticate(

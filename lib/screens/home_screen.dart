@@ -34,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.initState();
     _loadClonedApps();
     _loadBannerAd();
-    
+
     // Add search listener
     _searchController.addListener(_onSearchChanged);
 
@@ -93,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _isLoading = false;
     });
   }
-  
+
   void _onSearchChanged() {
     setState(() {
       final query = _searchController.text.toLowerCase();
@@ -102,12 +102,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       } else {
         _filteredApps = _clonedApps.where((app) {
           return app.appName.toLowerCase().contains(query) ||
-                 app.packageName.toLowerCase().contains(query);
+              app.packageName.toLowerCase().contains(query);
         }).toList();
       }
     });
   }
-  
+
   void _clearSearch() {
     _searchController.clear();
     setState(() {
@@ -468,17 +468,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         const SizedBox(height: 16),
                         Text(
                           'No apps found',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.grey.shade600,
-                            fontFamily: 'GoogleSans',
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                color: Colors.grey.shade600,
+                                fontFamily: 'GoogleSans',
+                              ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Try searching with a different term',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey.shade500,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: Colors.grey.shade500),
                         ),
                       ],
                     ),

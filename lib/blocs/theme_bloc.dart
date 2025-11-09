@@ -21,7 +21,10 @@ abstract class ThemeState {
 }
 
 class ThemeLoadingState extends ThemeState {
-  const ThemeLoadingState({required super.themeData, required super.isDarkMode});
+  const ThemeLoadingState({
+    required super.themeData,
+    required super.isDarkMode,
+  });
 }
 
 class LightThemeState extends ThemeState {
@@ -37,7 +40,7 @@ class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
   final SettingsService _settingsService = SettingsService();
 
   ThemeBloc()
-      : super(ThemeLoadingState(themeData: _lightTheme, isDarkMode: false)) {
+    : super(ThemeLoadingState(themeData: _lightTheme, isDarkMode: false)) {
     on<ThemeInitialized>(_onThemeInitialized);
     on<ThemeChanged>(_onThemeChanged);
   }
