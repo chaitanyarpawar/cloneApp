@@ -19,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final CloneAppService _cloneAppService = CloneAppService();
   List<ClonedApp> _clonedApps = [];
+  List<ClonedApp> _filteredApps = [];
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
   late AnimationController _fabController;
@@ -33,6 +34,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     super.initState();
     _loadClonedApps();
     _loadBannerAd();
+    
+    // Add search listener
+    _searchController.addListener(_onSearchChanged);
 
     _fabController = AnimationController(
       duration: AppConstants.cardAnimationDuration,
@@ -85,7 +89,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     setState(() {
       _clonedApps = clonedApps;
+      _filteredApps = clonedApps; // Initialize filtered list
       _isLoading = false;
+    });
+  }
+  
+  void _onSearchChanged() {
+    setState(() {
+      final query = _searchController.text.toLowerCase();
+      if (query.isEmpty) {
+        _filteredApps = _clonedApps;
+      } else {
+        _filteredApps = _clonedApps.where((app) {
+          return app.appName.toLowerCase().contains(query) ||
+                 app.packageName.toLowerCase().contains(query);
+        }).toList();
+      }
+    });
+  }
+  
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _filteredApps = _clonedApps;
     });
   }
 
@@ -125,7 +151,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (confirm == true) {
       final success = await _cloneAppService.removeClonedApp(app.id);
       if (success) {
-        _loadClonedApps();
+        await _loadClonedApps();
+        _onSearchChanged(); // Refresh filtered list
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -200,6 +227,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             Icons.search,
             color: isDark ? Colors.white70 : Colors.grey.shade600,
           ),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: Icon(
+                    Icons.clear,
+                    color: isDark ? Colors.white70 : Colors.grey.shade600,
+                  ),
+                  onPressed: _clearSearch,
+                )
+              : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -210,6 +246,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
         style: TextStyle(color: isDark ? Colors.white : Colors.black),
+        onChanged: (value) => _onSearchChanged(),
       ),
     );
   }
@@ -418,6 +455,34 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ],
                     ),
                   )
+                : _filteredApps.isEmpty && _searchController.text.isNotEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 80,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No apps found',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.grey.shade600,
+                            fontFamily: 'GoogleSans',
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Try searching with a different term',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
                 : RefreshIndicator(
                     onRefresh: _loadClonedApps,
                     child: ListView.builder(
@@ -425,9 +490,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         horizontal: 16,
                         vertical: 8,
                       ),
-                      itemCount: _clonedApps.length,
+                      itemCount: _filteredApps.length,
                       itemBuilder: (context, index) {
-                        final app = _clonedApps[index];
+                        final app = _filteredApps[index];
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           child: Card(
@@ -537,7 +602,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 );
 
                 if (result == true) {
-                  _loadClonedApps();
+                  await _loadClonedApps();
+                  _onSearchChanged(); // Refresh filtered list
                 }
               },
               style: ElevatedButton.styleFrom(

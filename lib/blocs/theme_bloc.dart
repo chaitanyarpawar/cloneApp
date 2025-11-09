@@ -16,8 +16,12 @@ class ThemeInitialized extends ThemeEvent {}
 abstract class ThemeState {
   final ThemeData themeData;
   final bool isDarkMode;
-  
+
   const ThemeState({required this.themeData, required this.isDarkMode});
+}
+
+class ThemeLoadingState extends ThemeState {
+  const ThemeLoadingState({required super.themeData, required super.isDarkMode});
 }
 
 class LightThemeState extends ThemeState {
@@ -32,7 +36,8 @@ class DarkThemeState extends ThemeState {
 class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
   final SettingsService _settingsService = SettingsService();
 
-  ThemeBloc() : super(LightThemeState(themeData: _lightTheme, isDarkMode: false)) {
+  ThemeBloc()
+      : super(ThemeLoadingState(themeData: _lightTheme, isDarkMode: false)) {
     on<ThemeInitialized>(_onThemeInitialized);
     on<ThemeChanged>(_onThemeChanged);
   }
@@ -107,11 +112,19 @@ class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
     useMaterial3: true,
   );
 
-  void _onThemeInitialized(ThemeInitialized event, Emitter<ThemeState> emit) async {
-    final bool isDarkMode = await _settingsService.getDarkMode();
-    if (isDarkMode) {
-      emit(DarkThemeState(themeData: _darkTheme, isDarkMode: true));
-    } else {
+  void _onThemeInitialized(
+    ThemeInitialized event,
+    Emitter<ThemeState> emit,
+  ) async {
+    try {
+      final bool isDarkMode = await _settingsService.getDarkMode();
+      if (isDarkMode) {
+        emit(DarkThemeState(themeData: _darkTheme, isDarkMode: true));
+      } else {
+        emit(LightThemeState(themeData: _lightTheme, isDarkMode: false));
+      }
+    } catch (e) {
+      // Fallback to light theme if there's an error loading settings
       emit(LightThemeState(themeData: _lightTheme, isDarkMode: false));
     }
   }

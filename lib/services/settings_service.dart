@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -12,13 +13,20 @@ class SettingsService {
   factory SettingsService() => _instance;
   SettingsService._internal();
 
-  late final LocalAuthentication _localAuth;
+  LocalAuthentication? _localAuth;
   late SharedPreferences _prefs;
 
   // Initialize the service
   Future<void> initialize() async {
-    _localAuth = LocalAuthentication();
-    _prefs = await SharedPreferences.getInstance();
+    try {
+      if (!kIsWeb) {
+        _localAuth = LocalAuthentication();
+      }
+      _prefs = await SharedPreferences.getInstance();
+    } catch (e) {
+      debugPrint('Failed to initialize SettingsService: $e');
+      rethrow;
+    }
   }
 
   // Dark Mode Settings
@@ -41,11 +49,11 @@ class SettingsService {
 
   // Check if biometric authentication is available
   Future<bool> isBiometricAvailable() async {
-    if (kIsWeb) return false;
-    
+    if (kIsWeb || _localAuth == null) return false;
+
     try {
-      final bool isAvailable = await _localAuth.canCheckBiometrics;
-      final bool isDeviceSupported = await _localAuth.isDeviceSupported();
+      final bool isAvailable = await _localAuth!.canCheckBiometrics;
+      final bool isDeviceSupported = await _localAuth!.isDeviceSupported();
       return isAvailable && isDeviceSupported;
     } catch (e) {
       return false;
@@ -54,10 +62,10 @@ class SettingsService {
 
   // Get available biometric types
   Future<List<BiometricType>> getAvailableBiometrics() async {
-    if (kIsWeb) return [];
-    
+    if (kIsWeb || _localAuth == null) return [];
+
     try {
-      return await _localAuth.getAvailableBiometrics();
+      return await _localAuth!.getAvailableBiometrics();
     } catch (e) {
       return [];
     }
@@ -67,10 +75,10 @@ class SettingsService {
   Future<bool> authenticateWithBiometrics({
     String reason = 'Please authenticate to access your cloned apps',
   }) async {
-    if (kIsWeb) return true; // Skip authentication on web for demo
-    
+    if (kIsWeb || _localAuth == null) return true; // Skip authentication on web for demo
+
     try {
-      final bool didAuthenticate = await _localAuth.authenticate(
+      final bool didAuthenticate = await _localAuth!.authenticate(
         localizedReason: reason,
         options: const AuthenticationOptions(
           biometricOnly: false,

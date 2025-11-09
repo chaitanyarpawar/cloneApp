@@ -11,12 +11,21 @@ import 'blocs/theme_bloc.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize services
-  await SettingsService().initialize();
+  // Initialize services with error handling
+  try {
+    await SettingsService().initialize();
+  } catch (e) {
+    // Continue if settings service fails to initialize
+    debugPrint('Settings service failed to initialize: $e');
+  }
 
   // Initialize Google Mobile Ads SDK
   if (!kIsWeb) {
-    await MobileAds.instance.initialize();
+    try {
+      await MobileAds.instance.initialize();
+    } catch (e) {
+      debugPrint('AdMob failed to initialize: $e');
+    }
   }
 
   // Set system UI overlay style

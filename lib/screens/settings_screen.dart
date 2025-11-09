@@ -58,7 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   String _getBiometricTypeString() {
     if (_availableBiometrics.isEmpty) return 'biometrics';
-    
+
     if (_availableBiometrics.contains(BiometricType.fingerprint)) {
       return 'fingerprint';
     } else if (_availableBiometrics.contains(BiometricType.face)) {
@@ -123,10 +123,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 setState(() {
                   _isDarkMode = value;
                 });
-                
+
                 // Update theme using BLoC
                 context.read<ThemeBloc>().add(ThemeChanged(value));
-                
+
                 _showSnackBar(
                   value ? 'Dark mode enabled' : 'Light mode enabled',
                 );
@@ -148,35 +148,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSettingCard(
             icon: Icons.fingerprint_rounded,
             title: 'Biometric Lock',
-            subtitle: _biometricAvailable 
-                ? 'Secure cloned apps with ${_getBiometricTypeString()}' 
+            subtitle: _biometricAvailable
+                ? 'Secure cloned apps with ${_getBiometricTypeString()}'
                 : 'Biometric authentication not available',
             trailing: Switch(
               value: _biometricEnabled && _biometricAvailable,
-              onChanged: _biometricAvailable ? (value) async {
-                if (value) {
-                  // Test biometric authentication before enabling
-                  final authenticated = await _settingsService.authenticateWithBiometrics(
-                    reason: 'Authenticate to enable biometric lock for cloned apps',
-                  );
-                  
-                  if (authenticated) {
-                    setState(() {
-                      _biometricEnabled = true;
-                    });
-                    await _settingsService.setBiometricLock(true);
-                    _showSnackBar('Biometric lock enabled successfully');
-                  } else {
-                    _showSnackBar('Authentication failed. Biometric lock not enabled.');
-                  }
-                } else {
-                  setState(() {
-                    _biometricEnabled = false;
-                  });
-                  await _settingsService.setBiometricLock(false);
-                  _showSnackBar('Biometric lock disabled');
-                }
-              } : null,
+              onChanged: _biometricAvailable
+                  ? (value) async {
+                      if (value) {
+                        // Test biometric authentication before enabling
+                        final authenticated = await _settingsService
+                            .authenticateWithBiometrics(
+                              reason:
+                                  'Authenticate to enable biometric lock for cloned apps',
+                            );
+
+                        if (authenticated) {
+                          setState(() {
+                            _biometricEnabled = true;
+                          });
+                          await _settingsService.setBiometricLock(true);
+                          _showSnackBar('Biometric lock enabled successfully');
+                        } else {
+                          _showSnackBar(
+                            'Authentication failed. Biometric lock not enabled.',
+                          );
+                        }
+                      } else {
+                        setState(() {
+                          _biometricEnabled = false;
+                        });
+                        await _settingsService.setBiometricLock(false);
+                        _showSnackBar('Biometric lock disabled');
+                      }
+                    }
+                  : null,
               activeTrackColor: AppTheme.primaryCyan,
               thumbColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
@@ -199,9 +205,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 });
                 await _settingsService.setIncognitoMode(value);
                 _showSnackBar(
-                  value 
-                    ? 'Incognito mode enabled - apps will be hidden' 
-                    : 'Incognito mode disabled - apps will be visible',
+                  value
+                      ? 'Incognito mode enabled - apps will be hidden'
+                      : 'Incognito mode disabled - apps will be visible',
                 );
               },
               activeTrackColor: AppTheme.primaryCyan,

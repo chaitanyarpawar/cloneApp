@@ -186,12 +186,12 @@ class CloneAppService {
     // Check if biometric authentication is required
     final settingsService = SettingsService();
     final requireAuth = await settingsService.shouldRequireBiometricAuth();
-    
+
     if (requireAuth) {
       final authenticated = await settingsService.authenticateWithBiometrics(
         reason: 'Authenticate to launch ${clonedApp.appName}',
       );
-      
+
       if (!authenticated) {
         return false; // Authentication failed
       }
