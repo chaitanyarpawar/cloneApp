@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:local_auth/local_auth.dart';
 import '../core/app_theme.dart';
 import '../core/app_constants.dart';
+import '../services/settings_service.dart';
+import '../blocs/theme_bloc.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,6 +17,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isDarkMode = false;
   bool _biometricEnabled = false;
   bool _notificationsEnabled = true;
+  bool _incognitoMode = false;
+  bool _biometricAvailable = false;
+  List<BiometricType> _availableBiometrics = [];
+
+  final SettingsService _settingsService = SettingsService();
 
   @override
   void initState() {
@@ -24,12 +33,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Update dark mode state based on current theme
-    _isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final themeState = context.read<ThemeBloc>().state;
+    _isDarkMode = themeState.isDarkMode;
   }
 
-  void _loadSettings() {
-    // Load settings from SharedPreferences
-    // Theme detection moved to didChangeDependencies()
+  void _loadSettings() async {
+    // Load all settings
+    final darkMode = await _settingsService.getDarkMode();
+    final biometric = await _settingsService.getBiometricLock();
+    final notifications = await _settingsService.getNotifications();
+    final incognito = await _settingsService.getIncognitoMode();
+    final biometricAvailable = await _settingsService.isBiometricAvailable();
+    final availableBiometrics = await _settingsService.getAvailableBiometrics();
+
+    setState(() {
+      _isDarkMode = darkMode;
+      _biometricEnabled = biometric;
+      _notificationsEnabled = notifications;
+      _incognitoMode = incognito;
+      _biometricAvailable = biometricAvailable;
+      _availableBiometrics = availableBiometrics;
+    });
+  }
+
+  String _getBiometricTypeString() {
+    if (_availableBiometrics.isEmpty) return 'biometrics';
+    
+    if (_availableBiometrics.contains(BiometricType.fingerprint)) {
+      return 'fingerprint';
+    } else if (_availableBiometrics.contains(BiometricType.face)) {
+      return 'face recognition';
+    } else if (_availableBiometrics.contains(BiometricType.iris)) {
+      return 'iris scan';
+    } else {
+      return 'biometric authentication';
+    }
   }
 
   void _showSnackBar(String message) {
@@ -81,12 +119,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: 'Toggle between light and dark themes',
             trailing: Switch(
               value: _isDarkMode,
-              onChanged: (value) {
+              onChanged: (value) async {
                 setState(() {
                   _isDarkMode = value;
                 });
+                
+                // Update theme using BLoC
+                context.read<ThemeBloc>().add(ThemeChanged(value));
+                
                 _showSnackBar(
-                  'Theme switching will be implemented in future versions',
+                  value ? 'Dark mode enabled' : 'Light mode enabled',
                 );
               },
               activeTrackColor: AppTheme.primaryCyan,
@@ -106,17 +148,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSettingCard(
             icon: Icons.fingerprint_rounded,
             title: 'Biometric Lock',
-            subtitle: 'Secure cloned apps with fingerprint/PIN',
+            subtitle: _biometricAvailable 
+                ? 'Secure cloned apps with ${_getBiometricTypeString()}' 
+                : 'Biometric authentication not available',
             trailing: Switch(
-              value: _biometricEnabled,
-              onChanged: (value) {
-                setState(() {
-                  _biometricEnabled = value;
-                });
-                _showSnackBar(
-                  'Biometric authentication will be implemented in future versions',
-                );
-              },
+              value: _biometricEnabled && _biometricAvailable,
+              onChanged: _biometricAvailable ? (value) async {
+                if (value) {
+                  // Test biometric authentication before enabling
+                  final authenticated = await _settingsService.authenticateWithBiometrics(
+                    reason: 'Authenticate to enable biometric lock for cloned apps',
+                  );
+                  
+                  if (authenticated) {
+                    setState(() {
+                      _biometricEnabled = true;
+                    });
+                    await _settingsService.setBiometricLock(true);
+                    _showSnackBar('Biometric lock enabled successfully');
+                  } else {
+                    _showSnackBar('Authentication failed. Biometric lock not enabled.');
+                  }
+                } else {
+                  setState(() {
+                    _biometricEnabled = false;
+                  });
+                  await _settingsService.setBiometricLock(false);
+                  _showSnackBar('Biometric lock disabled');
+                }
+              } : null,
               activeTrackColor: AppTheme.primaryCyan,
               thumbColor: WidgetStateProperty.resolveWith((states) {
                 if (states.contains(WidgetState.selected)) {
@@ -131,12 +191,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.visibility_off_rounded,
             title: 'Incognito Mode',
             subtitle: 'Hide cloned apps from launcher',
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              _showSnackBar(
-                'Incognito mode will be implemented in future versions',
-              );
-            },
+            trailing: Switch(
+              value: _incognitoMode,
+              onChanged: (value) async {
+                setState(() {
+                  _incognitoMode = value;
+                });
+                await _settingsService.setIncognitoMode(value);
+                _showSnackBar(
+                  value 
+                    ? 'Incognito mode enabled - apps will be hidden' 
+                    : 'Incognito mode disabled - apps will be visible',
+                );
+              },
+              activeTrackColor: AppTheme.primaryCyan,
+              thumbColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return Colors.white;
+                }
+                return Colors.grey;
+              }),
+            ),
           ),
 
           const SizedBox(height: 24),
@@ -149,10 +224,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: 'Receive updates about cloned apps',
             trailing: Switch(
               value: _notificationsEnabled,
-              onChanged: (value) {
+              onChanged: (value) async {
                 setState(() {
                   _notificationsEnabled = value;
                 });
+                await _settingsService.setNotifications(value);
+                _showSnackBar(
+                  value ? 'Notifications enabled' : 'Notifications disabled',
+                );
               },
               activeTrackColor: AppTheme.primaryCyan,
               thumbColor: WidgetStateProperty.resolveWith((states) {

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/cloned_app.dart';
+import 'settings_service.dart';
 
 // Platform-specific imports
 import 'package:installed_apps/app_info.dart';
@@ -180,6 +181,20 @@ class CloneAppService {
     if (kIsWeb) {
       // Web demo mode - simulate app launch
       return true;
+    }
+
+    // Check if biometric authentication is required
+    final settingsService = SettingsService();
+    final requireAuth = await settingsService.shouldRequireBiometricAuth();
+    
+    if (requireAuth) {
+      final authenticated = await settingsService.authenticateWithBiometrics(
+        reason: 'Authenticate to launch ${clonedApp.appName}',
+      );
+      
+      if (!authenticated) {
+        return false; // Authentication failed
+      }
     }
 
     try {
