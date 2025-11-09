@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -75,8 +74,9 @@ class SettingsService {
   Future<bool> authenticateWithBiometrics({
     String reason = 'Please authenticate to access your cloned apps',
   }) async {
-    if (kIsWeb || _localAuth == null)
+    if (kIsWeb || _localAuth == null) {
       return true; // Skip authentication on web for demo
+    }
 
     try {
       final bool didAuthenticate = await _localAuth!.authenticate(
