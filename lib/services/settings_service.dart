@@ -24,26 +24,63 @@ class SettingsService {
       _prefs = await SharedPreferences.getInstance();
     } catch (e) {
       debugPrint('Failed to initialize SettingsService: $e');
-      rethrow;
+      // Don't rethrow - let the app continue with fallback behavior
+    }
+  }
+
+  // Safe method to get preferences with fallback
+  Future<SharedPreferences?> _getSafePrefs() async {
+    try {
+      return _prefs;
+    } catch (e) {
+      try {
+        _prefs = await SharedPreferences.getInstance();
+        return _prefs;
+      } catch (e2) {
+        debugPrint('Failed to get SharedPreferences: $e2');
+        return null;
+      }
     }
   }
 
   // Dark Mode Settings
   Future<bool> getDarkMode() async {
-    return _prefs.getBool(_darkModeKey) ?? false;
+    try {
+      final prefs = await _getSafePrefs();
+      return prefs?.getBool(_darkModeKey) ?? false;
+    } catch (e) {
+      debugPrint('Error getting dark mode: $e');
+      return false;
+    }
   }
 
   Future<void> setDarkMode(bool isDarkMode) async {
-    await _prefs.setBool(_darkModeKey, isDarkMode);
+    try {
+      final prefs = await _getSafePrefs();
+      await prefs?.setBool(_darkModeKey, isDarkMode);
+    } catch (e) {
+      debugPrint('Error setting dark mode: $e');
+    }
   }
 
   // Biometric Lock Settings
   Future<bool> getBiometricLock() async {
-    return _prefs.getBool(_biometricLockKey) ?? false;
+    try {
+      final prefs = await _getSafePrefs();
+      return prefs?.getBool(_biometricLockKey) ?? false;
+    } catch (e) {
+      debugPrint('Error getting biometric lock: $e');
+      return false;
+    }
   }
 
   Future<void> setBiometricLock(bool isEnabled) async {
-    await _prefs.setBool(_biometricLockKey, isEnabled);
+    try {
+      final prefs = await _getSafePrefs();
+      await prefs?.setBool(_biometricLockKey, isEnabled);
+    } catch (e) {
+      debugPrint('Error setting biometric lock: $e');
+    }
   }
 
   // Check if biometric authentication is available
@@ -94,20 +131,42 @@ class SettingsService {
 
   // Notifications Settings
   Future<bool> getNotifications() async {
-    return _prefs.getBool(_notificationsKey) ?? true;
+    try {
+      final prefs = await _getSafePrefs();
+      return prefs?.getBool(_notificationsKey) ?? true;
+    } catch (e) {
+      debugPrint('Error getting notifications: $e');
+      return true;
+    }
   }
 
   Future<void> setNotifications(bool isEnabled) async {
-    await _prefs.setBool(_notificationsKey, isEnabled);
+    try {
+      final prefs = await _getSafePrefs();
+      await prefs?.setBool(_notificationsKey, isEnabled);
+    } catch (e) {
+      debugPrint('Error setting notifications: $e');
+    }
   }
 
   // Incognito Mode Settings
   Future<bool> getIncognitoMode() async {
-    return _prefs.getBool(_incognitoModeKey) ?? false;
+    try {
+      final prefs = await _getSafePrefs();
+      return prefs?.getBool(_incognitoModeKey) ?? false;
+    } catch (e) {
+      debugPrint('Error getting incognito mode: $e');
+      return false;
+    }
   }
 
   Future<void> setIncognitoMode(bool isEnabled) async {
-    await _prefs.setBool(_incognitoModeKey, isEnabled);
+    try {
+      final prefs = await _getSafePrefs();
+      await prefs?.setBool(_incognitoModeKey, isEnabled);
+    } catch (e) {
+      debugPrint('Error setting incognito mode: $e');
+    }
   }
 
   // Check if biometric lock should be enforced before app access

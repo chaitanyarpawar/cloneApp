@@ -34,13 +34,20 @@ class _AddAppScreenState extends State<AddAppScreen> {
       _isLoading = true;
     });
 
-    final apps = await _cloneAppService.getInstalledApps();
+    try {
+      // Load apps with icons for proper cloning functionality
+      final apps = await _cloneAppService.getInstalledApps(includeIcons: true);
 
-    setState(() {
-      _installedApps = apps;
-      _filteredApps = apps;
-      _isLoading = false;
-    });
+      setState(() {
+        _installedApps = apps;
+        _filteredApps = apps;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _filterApps() {
@@ -55,16 +62,22 @@ class _AddAppScreenState extends State<AddAppScreen> {
   }
 
   Future<void> _cloneApp(AppInfo app) async {
-    // Show progress dialog
+    // Show enhanced progress dialog
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const AlertDialog(
-        content: Row(
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 16),
-            Text('Cloning app...'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text('Cloning ${app.name}...'),
+            const SizedBox(height: 8),
+            const Text(
+              'Creating separate app instance',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ],
         ),
       ),
@@ -79,20 +92,78 @@ class _AddAppScreenState extends State<AddAppScreen> {
 
     if (success) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${app.name} cloned successfully!'),
-            backgroundColor: Colors.green,
+        // Show information dialog about app cloning
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: [
+                const Icon(Icons.info, color: Colors.blue),
+                const SizedBox(width: 8),
+                const Text('Clone Created Successfully'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${app.name} has been cloned!'),
+                const SizedBox(height: 12),
+                const Text(
+                  'How to use multiple accounts:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text('1. Tap the cloned app to launch it'),
+                const Text('2. The app will restart with a clean session'),
+                const Text('3. Login with your second account'),
+                const Text(
+                  '4. Switch between accounts by opening different instances',
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: const Text(
+                    'Note: Some apps may not support true parallel sessions. The clone will restart the app with a fresh session.',
+                    style: TextStyle(fontSize: 12, color: Colors.orange),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context, true);
+                },
+                child: const Text('Got it!'),
+              ),
+            ],
           ),
         );
-        Navigator.pop(context, true);
       }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${app.name} is already cloned or failed to clone'),
+            content: Row(
+              children: [
+                const Icon(Icons.warning, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Failed to clone ${app.name}. Maximum 5 clones per app allowed.',
+                  ),
+                ),
+              ],
+            ),
             backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
           ),
         );
       }

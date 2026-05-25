@@ -65,6 +65,15 @@ dependencies:
   
   # For secure storage
   flutter_secure_storage: ^9.2.2
+  
+  # For better app launching and process management
+  url_launcher: ^6.2.2
+  
+  # For device info
+  device_info_plus: ^9.1.2
+  
+  # For file path management
+  path_provider: ^2.1.2
 
 dev_dependencies:
   flutter_test:
